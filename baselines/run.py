@@ -86,7 +86,10 @@ def build_env(args):
     if sys.platform == 'darwin': ncpu //= 2
     nenv = args.num_env or ncpu
     alg = args.alg
-    seed = args.seed
+    #seed = args.seed
+
+    # set the same environment seed for variability experiments
+    seed = 9874
 
     env_type, env_id = get_env_type(args.env)
 
