@@ -7,6 +7,32 @@ from gym import spaces
 import cv2
 cv2.ocl.setUseOpenCL(False)
 
+# variability_RL imports
+from baselines.common.vec_env.vec_frame_stack import VecFrameStack
+from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
+from baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
+#
+
+# variability_RL functions
+# Get innermost gym.Env (skip all Wrapper)
+def get_turtle(env):
+    env = env
+    while True:
+        if (isinstance(env, VecFrameStack)):
+            env = env.venv
+        elif (isinstance(env, gym.Wrapper)):
+            env = env.env
+        elif (isinstance(env, DummyVecEnv)):
+            env = env.envs[0]
+        elif isinstance(env, SubprocVecEnv):
+            env = env.example_env 
+        elif isinstance(env, gym.Env):
+            return env
+        else:
+            raise ValueError("Can't unwrap", env)
+#
+
+
 class NoopResetEnv(gym.Wrapper):
     def __init__(self, env, noop_max=30):
         """Sample initial states by taking random number of no-ops on reset.
