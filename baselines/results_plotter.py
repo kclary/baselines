@@ -46,14 +46,22 @@ def ts2xy(ts, xaxis, yaxis):
     return x, y
 
 def plot_curves(xy_list, xaxis, yaxis, title):
+    print("here")
     fig = plt.figure(figsize=(8,2))
     maxx = max(xy[0][-1] for xy in xy_list)
     minx = 0
     for (i, (x, y)) in enumerate(xy_list):
         color = COLORS[i]
-        plt.scatter(x, y, s=2)
+        #plt.scatter(x, y, s=2)
+
         x, y_mean = window_func(x, y, EPISODES_WINDOW, np.mean) #So returns average of last EPISODE_WINDOW episodes
+        y_std = stdev(y)
+        y_upper = y_mean + y_std
+        y_lower = y_mean - y_std
+
         plt.plot(x, y_mean, color=color)
+        plt.fill_between(x, list(y_lower), list(y_upper), interpolate=True, facecolor=color, linewidth=0.0, alpha=0.3)
+        line = plt.plot(x, list(y_mean), label=label, color=color, rasterized=True)
     plt.xlim(minx, maxx)
     plt.title(title)
     plt.xlabel(xaxis)
@@ -70,6 +78,18 @@ def plot_results(dirs, num_timesteps, xaxis, yaxis, task_name):
         tslist.append(ts)
     xy_list = [ts2xy(ts, xaxis, yaxis) for ts in tslist]
     plot_curves(xy_list, xaxis, yaxis, task_name)
+
+# variability-RL functions
+# same as plot_results, but just returns the items for plotting
+def prepare_results(dirs, num_timesteps, xaxis, yaxis, task_name): 
+    tslist = []
+    for dir in dirs:
+        ts = load_results(dir)
+        ts = ts[ts.l.cumsum() <= num_timesteps]
+        tslist.append(ts)
+    xy_list = [ts2xy(ts, xaxis, yaxis) for ts in tslist]
+
+    return xy_list
 
 # Example usage in jupyter-notebook
 # from baselines import log_viewer
