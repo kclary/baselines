@@ -245,60 +245,63 @@ def main():
     path_stem = extra_args['load_path']
     model_id = path_stem.split("/")[1]
 
-    with tf.Graph().as_default(): 
+    model_exists = osp.exists(extra_args['load_path'])
+    data_exists = osp.exists('data/model_scores_'+model_id+'.tsv')
+    if model_exists and not data_exists:
 
-        model, env = train(args, extra_args)
-        env.close()
-
-        if args.save_path is not None and rank == 0:
-            save_path = osp.expanduser(args.save_path)
-            model.save(save_path)
-
-        if args.play:
-            logger.log("Running trained model",model_id)
-            env = build_env(args)
-            obs = env.reset()
-            turtle = atari_wrappers.get_turtle(env)
-            scores = []
-            session_scores = set()
-            num_games = 0
-            # This is a hack to get the starting screen, which throws an error in ALE for amidar
-            num_steps = -1
-
-            while num_games < n_trials:
-                actions = model.step(obs)[0]
-                num_lives = turtle.ale.lives()
-                obs, _, done, info = env.step(actions)
-                #env.render()
-                #time.sleep(1.0/60.0)
-                done = num_lives == 1 and done 
-
-                if isinstance(info, list) or isinstance(info, tuple):
-                    session_scores.add(np.average([d['score'] for d in info]))
-                elif isinstance(info, dict):
-                    session_scores.add(['score'])
-                else:
-                    session_scores.add(-1)
-
-                if done:
-                    num_games += 1
-                    score = max(session_scores)
-                    scores.append(score)
-                    session_scores = set()
-
-                    print("game %s: %s" % (num_games, score))
-                    obs = env.reset()
-                    session_scores = set()
-
-            print("Avg score: %f" % np.average(scores))
-            print("Median score: %f" % np.median(scores))
-            print("Std error score: %f" % sem(scores))
-            print("Std dev score: %f" % stdev(scores))
+        with tf.Graph().as_default(): 
+            model, env = train(args, extra_args)
             env.close()
 
-            with open('data/model_scores_'+model_id+'.tsv', 'w') as fp:
-                    for n in scores:
-                        print('\t'.join([model_id, str(n)]), file=fp)
+            if args.save_path is not None and rank == 0:
+                save_path = osp.expanduser(args.save_path)
+                model.save(save_path)
+
+            if args.play:
+                logger.log("Running trained model",model_id)
+                env = build_env(args)
+                obs = env.reset()
+                turtle = atari_wrappers.get_turtle(env)
+                scores = []
+                session_scores = set()
+                num_games = 0
+                # This is a hack to get the starting screen, which throws an error in ALE for amidar
+                num_steps = -1
+
+                while num_games < n_trials:
+                    actions = model.step(obs)[0]
+                    num_lives = turtle.ale.lives()
+                    obs, _, done, info = env.step(actions)
+                    #env.render()
+                    #time.sleep(1.0/60.0)
+                    done = num_lives == 1 and done 
+
+                    if isinstance(info, list) or isinstance(info, tuple):
+                        session_scores.add(np.average([d['score'] for d in info]))
+                    elif isinstance(info, dict):
+                        session_scores.add(['score'])
+                    else:
+                        session_scores.add(-1)
+
+                    if done:
+                        num_games += 1
+                        score = max(session_scores)
+                        scores.append(score)
+                        session_scores = set()
+
+                        print("game %s: %s" % (num_games, score))
+                        obs = env.reset()
+                        session_scores = set()
+
+                print("Avg score: %f" % np.average(scores))
+                print("Median score: %f" % np.median(scores))
+                print("Std error score: %f" % sem(scores))
+                print("Std dev score: %f" % stdev(scores))
+                env.close()
+
+                with open('data/model_scores_'+model_id+'.tsv', 'w') as fp:
+                        for n in scores:
+                            print('\t'.join([model_id, str(n)]), file=fp)
 
 if __name__ == '__main__':
     main()
